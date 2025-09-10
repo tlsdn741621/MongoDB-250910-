@@ -98,7 +98,10 @@ db.users.find({ name: "Kim" });
 
 // ✅ 3. 나이가 30 또는 40인 사용자 찾기
 
-db.users.find({ age: { $in: [30, 40] } }, { _id: 0, name: 1, email: 1 });
+db.users.find(
+  { age: { $in: [30, 40] } },
+  { _id: 0, name: 1, email: 1, age: 1 }
+);
 
 // ✅ 4. 나이가 30 이상이고, 도시가 "Seoul"인 사용자 찾기
 
@@ -132,7 +135,7 @@ db.users.find({ gender: "남성", age: { $gte: 30 } });
 
 // ✅ 11. location 필드가 없는 사용자 찾기
 
-db.users.find({ location: { $exists: true } });
+db.users.find({ location: { $exists: false } });
 
 // ✅ 12. 이름이 "Lee"가 아닌 사용자 찾기
 
