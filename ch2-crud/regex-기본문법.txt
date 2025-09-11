@@ -13,6 +13,7 @@
 
 기호	설명	예제	설명
 
+
 .	아무 문자 한 개	a.b → "acb" ✅ "a#b" ✅ 
 
 ^	문자열의 시작	^Hello → "Hello World" ✅ "Hi Hello" ❌	
