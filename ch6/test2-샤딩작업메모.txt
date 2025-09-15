@@ -68,6 +68,8 @@ members: [
 }
 )
 
+---먼저, 혼자서, 샤딩 서버 구성시에는 다 동일하게 설정해야해서, localhost 유지, 
+--- 다른 팀원과 할 때는, 상대방의 아이피 또는 본인의 아이피를 입력
 rs.initiate(
 {
 _id : "shard0",
@@ -153,8 +155,9 @@ members: [
 ]
 }
 )
-
+======================================================================
 설정 참고 
+1, 유저 등록, 키 값 등록시 참고사항,(현재, 넘어가기)
 security:
   keyFile : C:\Program Files\MongoDB\Server\4.4\keyFile.key
   clusterAuthMode : keyFile
@@ -165,11 +168,17 @@ replication :
 
 
 클라이언트에서 연결 
+주의사항!!
+몽고스, 중개 라우터, 디비서버 시작 해야함. 
 
 mongos 설정하기. - 상용5
 
 localhost -> 상용1
+================================================================
+주의사항!!
+몽고스, 중개 라우터, 디비서버 시작 해야함. 
 mongos --configdb config0/localhost:27018 --port 20000
+================================================================
 
 mongos --configdb config0/10.100.201.87:27018 --port 20000
 
@@ -181,13 +190,14 @@ mongosh shell 접속
 여기로 접속
 mongosh --port 20000 
 
-방법만 참고
+방법만 참고, (현재, 넘어가기)
 다른 아이피 접속하는 옵션 추가
 mongosh --host <상대방 아이피> --port 20000
 
 mongosh --port 20000 -u fred -p 1234
 
-
+========================================================================
+(현재, 넘어가기)
 use admin
 db.grantRolesToUser("fred", ["clusterAdmin"])
 
@@ -200,22 +210,21 @@ db.createUser(
   }
 )
 
-
-상용 5 
-localhost -> 상용2 아이피 
-sh.addShard("shard0/localhost:27021")
-sh.addShard("shard1/localhost:27031")
-sh.addShard("shard2/localhost:27041")
-
+======================================================
 메모 , 7.0.12 에서 
 과반수 동의건 설정 필요
 클러스터 전역의 기본 쓰기 우려를 과반수(w: "majority")로 설정
+
+순서1
 use admin
+
+순서2
 db.adminCommand({
   setDefaultRWConcern: 1,
   defaultWriteConcern: { w: "majority" }
 })
 
+순서3, 확인용. 
 db.adminCommand({ getDefaultRWConcern: 1 });
 
 각 샤드 0
@@ -225,8 +234,13 @@ rs.remove("localhost:27033");
 각 샤드 2
 rs.remove("localhost:27043");
 
+순서4
+개인용, 로컬호스트 
+sh.addShard("shard0/localhost:27021")
+sh.addShard("shard1/localhost:27031")
+sh.addShard("shard2/localhost:27041")
 
-
+팀용
 sh.addShard("shard0/10.100.201.87:27021")
 sh.addShard("shard1/10.100.201.87:27031")
 sh.addShard("shard2/10.100.201.87:27041")
@@ -234,30 +248,43 @@ sh.addShard("shard2/10.100.201.87:27041")
 sh.addShard("shard0/10.100.201.52:27021")
 sh.addShard("shard1/10.100.201.52:27031")
 sh.addShard("shard2/10.100.201.52:27041")
+========================================================
+몽구스 라우터에 , 샤드 서버 등록후, 
+샤딩을 할 데이터베이스, 컬렉션을 지정. 
 
+순서5
 use config
+
+순서6
 db.shards.find()
+
+순서7
 use config
 
+순서8
 sh.enableSharding("test2345")
 db.test.createIndex({x:1})
 
+순서9
 use admin 
 
+순서10
 sh.shardCollection("test2345.test",{
 x:"hashed"
 })
 
-
-
+순서11
 use test2345
 
+순서12
 for(var i = 1; i<12001; i++){
 db.test.insertOne({x:i,ename:i,sal:100})
 }
 
+입력후, 분산 결과 조회. 
+순서13
 db.test.getShardDistribution()
-
+=======================================================================
 shard0 ::
  mongosh --port 27021
 use test2345
@@ -282,3 +309,41 @@ shard0:PRIMARY> use test2345
 switched to db test2345
 shard0:PRIMARY> db.test.count()
 3468
+==========================================================================
+리액트, 스프링, 몽고디비 연동시, 파일 이미지를 연동할 때, 참고할 , 
+테이블, 데이터베이스 설정 참고, !!!
+
+-- 참고, 이미지 파일 저장 시, 
+순서1
+// "files_id"를 기준으로 fs.chunks 컬렉션을 샤딩합니다.
+//sh.shardCollection("test2345.fs.chunks", { "files_id": 1 });
+sh.shardCollection("test2345.fs.chunks", { files_id: 1, n: 1 })
+
+===============================================================
+// 기존 설정 삭제 예시, 
+// mongos 셸에서 실행
+// 1. fs.chunks 컬렉션 삭제
+db.getSiblingDB('test2345').fs.chunks.drop()
+
+// 2. fs.files 컬렉션 삭제
+db.getSiblingDB('test2345').fs.files.drop()
+
+// , 순서4 로 가서, 한번더 등록 하기.
+===============================================================
+
+// 수정, 분산 저장 용. 
+// 파일 ID(files_id)와 청크 순번(n)을 결합한 복합 샤드 키를 사용
+sh.shardCollection("test2345.fs.chunks", { files_id: 1, n: 1 })
+
+
+순서2
+db.fs.files.createIndex({ "_id": "hashed" })
+// "_id"를 기준으로 fs.files 컬렉션을 샤딩합니다.
+
+순서3
+sh.shardCollection("test2345.fs.files", { "_id": "hashed" });
+
+
+========================================================
+
+=======================================================

@@ -839,7 +839,7 @@ db.salesB.aggregate([
 
   { $unwind: "$userDetails" },
 
-  // { $replaceRoot: { newRoot: "$userDetails" } },
+  { $replaceRoot: { newRoot: "$userDetails" } },
 ]);
 
 // 출력 예시
